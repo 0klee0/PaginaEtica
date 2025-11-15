@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Investigando la Corrupción</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.1/chart.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 450px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 350px;
+            max-height: 400px;
+        }
+        .nav-link {
+            @apply px-3 py-2 rounded-md text-sm font-medium text-stone-700 hover:bg-orange-100 hover:text-stone-900 transition-colors;
+        }
+        .active-link {
+            @apply bg-orange-200 text-stone-900 font-semibold;
+        }
+        .content-section {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .impact-btn {
+            @apply px-4 py-2 rounded-lg text-lg font-semibold border-2 border-orange-300 text-stone-700 hover:bg-orange-200 hover:border-orange-400 transition-all;
+        }
+        .active-impact-btn {
+            @apply bg-orange-500 text-white border-orange-500;
+        }
+        
+        #gemini-result-container {
+            @apply bg-white p-6 rounded-2xl shadow-inner min-h-[100px] border border-orange-100 mt-6;
+        }
+        
+        .loader {
+            width: 48px;
+            height: 48px;
+            border: 5px solid #FFF;
+            border-bottom-color: #FF7F50;
+            border-radius: 50%;
+            display: inline-block;
+            box-sizing: border-box;
+            animation: rotation 1s linear infinite;
+        }
+
+        @keyframes rotation {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        #simple-explainer-modal .animate-fadeIn {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+    </style>
+</head>
+<body class="bg-orange-50 text-stone-800">
+
+    <!-- Chosen Palette: Warm Sand & Teal (Using warm neutrals bg-orange-50, text-stone-800, and orange-500/teal-600 as accents) -->
+    <!-- Application Structure Plan: La aplicación está diseñada como un viaje de descubrimiento en 5 pasos, ideal para un público joven. Se utiliza una barra de navegación superior fija para permitir la exploración no lineal de las secciones: 1. Inicio (Bienvenida), 2. ¿Qué es? (Definición con ejemplos), 3. ¿Cómo nos afecta? (Comparación interactiva), 4. ¿Qué se siente? (Visualización de datos), 5. ¿Qué podemos hacer? (Acción). Esta estructura temática descompone un tema complejo en partes manejables y relacionables, priorizando la comprensión y la reflexión sobre la presentación de datos brutos. La interactividad se centra en la sección "Afecta" para crear una conexión tangible con las consecuencias. -->
+    <!-- Visualization & Content Choices: 1. ¿Qué es?: (Informar/Organizar) -> Tarjetas HTML/Tailwind con iconos Unicode. (Interacción: Visual). (Justificación: Simple, visualmente atractivo para jóvenes). 2. ¿Cómo nos afecta?: (Comparar/Informar) -> Botones JS que actualizan bloques de texto. (Interacción: Clic para actualizar texto comparativo). (Justificación: Demuestra causa y efecto de forma directa y tangible). 3. ¿Qué se siente?: (Informar/Reflexionar) -> Gráfico de dona con Chart.js. (Interacción: Hover). (Justificación: Visualiza datos "blandos" (sentimientos) de forma sencilla, fomentando la reflexión). 4. ¿Qué podemos hacer?: (Informar/Acción) -> Tarjetas de acción HTML/Tailwind. (Interacción: Visual). (Justificación: Termina con un tono positivo y empoderador). -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+
+    <nav class="bg-white/80 backdrop-blur-md shadow-sm fixed top-0 left-0 right-0 z-10">
+        <div class="container mx-auto px-4">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex-shrink-0">
+                    <span class="text-2xl font-bold text-orange-600"></span>
+                </div>
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-4">
+                        <a href="#" class="nav-link active-link" data-target="inicio">Inicio</a>
+                        <a href="#" class="nav-link" data-target="que-es">¿Qué es?</a>
+                        <a href="#" class="nav-link" data-target="afecta">¿Cómo nos afecta?</a>
+                      
+                        <a href="#" class="nav-link" data-target="acciones">¿Qué podemos hacer?</a>
+                        <a href="#" class="nav-link" data-target="sentimientos">¿Qué se siente?</a>
+                    </div>
+                </div>
+                <div class="md:hidden flex items-center">
+                    <button id="mobile-menu-button" class="inline-flex items-center justify-center p-2 rounded-md text-stone-700 hover:bg-orange-100 focus:outline-none">
+                        <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="md:hidden hidden" id="mobile-menu">
+            <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+                <a href="#" class="nav-link block active-link" data-target="inicio">Inicio</a>
+                <a href="#" class="nav-link block" data-target="que-es">¿Qué es?</a>
+                <a href="#" class="nav-link block" data-target="afecta">¿Cómo nos afecta?</a>
+                <a href="#" class="nav-link block" data-target="sentimientos">¿Qué se siente?</a>
+                <a href="#" class="nav-link block" data-target="acciones">¿Qué podemos hacer?</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container mx-auto px-4 py-8 pt-24 max-w-5xl">
+
+        <section id="inicio" class="content-section text-center">
+            <h1 class="text-4xl md:text-5xl font-bold text-stone-900 mb-4">¡Hablemos de algo importante!</h1>
+            <p class="text-xl md:text-2xl text-stone-700 max-w-3xl mx-auto">
+                Alguna vez has escuchado la palabra "corrupción"? Suena complicada, pero es algo que nos afecta a todos.
+                Esta página es para ayudarte a entender qué es, por qué no está bien y qué podemos hacer para construir un México mejor.
+            </p>
+            <div class="mt-10">
+                <img src="https://placehold.co/800x400/FFF0E0/F97316?text=%C2%A1Explora+con+nosotros!&font=Inter" alt="Ilustración de bienvenida" class="rounded-2xl shadow-lg w-full max-w-3xl mx-auto">
+            </div>
+        </section>
+
+        <section id="que-es" class="content-section hidden">
+            <h2 class="text-3xl md:text-4xl font-bold text-center text-stone-900 mb-4">Entonces, ¿qué es la corrupción?</h2>
+            <p class="text-lg text-stone-700 text-center max-w-3xl mx-auto mb-10">
+                En pocas palabras, es usar el poder que alguien tiene no para ayudar a los demás, sino para beneficiarse a sí mismo o a sus amigos. Es como hacer trampa en un juego donde todos deberíamos jugar limpio.
+            </p>
+            <div class="grid md:grid-cols-3 gap-6">
+                <div class="bg-white p-6 rounded-2xl shadow-md border border-orange-100 flex flex-col">
+                    <span class="text-4xl"></span>
+                    <h3 class="text-2xl font-semibold mt-3 mb-2">Pedir "mordida"</h3>
+                    <p class="text-stone-600 flex-grow">Es cuando alguien en un puesto de poder (como un policía o un funcionario) te pide dinero extra para hacer su trabajo, o para "olvidar" una multa.</p>
+                    <button class="simple-explainer-btn mt-4 text-left text-orange-600 font-semibold hover:text-orange-800" data-topic="mordida">
+                        Explícamelo más fácil
+                    </button>
+                </div>
+                <div class="bg-white p-6 rounded-2xl shadow-md border border-orange-100 flex flex-col">
+                    <span class="text-4xl"></span>
+                    <h3 class="text-2xl font-semibold mt-3 mb-2">"Tener palancas"</h3>
+                    <p class="text-stone-600 flex-grow">Significa usar tus contactos o amigos importantes para conseguir algo que no mereces, como un trabajo, saltarte la fila o ganar un contrato.</p>
+                    <button class="simple-explainer-btn mt-4 text-left text-orange-600 font-semibold hover:text-orange-800" data-topic="palancas">
+                        Explícamelo más fácil
+                    </button>
+                </div>
+                <div class="bg-white p-6 rounded-2xl shadow-md border border-orange-100 flex flex-col">
+                    <span class="text-4xl">📄</span>
+                    <h3 class="text-2xl font-semibold mt-3 mb-2">Desviar dinero</h3>
+                    <p class="text-stone-600 flex-grow">Es cuando el dinero que es de todos (de nuestros impuestos) y que debería usarse para escuelas u hospitales, alguien se lo "roba" o lo usa en otra cosa.</p>
+                    <button class="simple-explainer-btn mt-4 text-left text-orange-600 font-semibold hover:text-orange-800" data-topic="desviar dinero">
+                        Explícamelo más fácil
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <section id="afecta" class="content-section hidden">
+            <h2 class="text-3xl md:text-4xl font-bold text-center text-stone-900 mb-4">¿Cómo nos afecta a ti y a mí?</h2>
+            <p class="text-lg text-stone-700 text-center max-w-3xl mx-auto mb-10">
+                La corrupción no es un juego. Tiene consecuencias reales que vemos todos los días. Toca los botones para ver cómo sería un mundo con y sin corrupción.
+            </p>
+            <div class="flex justify-center flex-wrap gap-4 mb-10">
+                <button class="impact-btn active-impact-btn" data-type="escuela">🏫 Escuela</button>
+                <button class="impact-btn" data-type="hospital">🏥 Hospital</button>
+                <button class="impact-btn" data-type="parque">🌳 Parque</button>
+            </div>
+            <div class="grid md:grid-cols-2 gap-6 bg-white p-6 rounded-2xl shadow-lg">
+                <div>
+                    <h3 class="text-2xl font-semibold text-teal-600 mb-3"> El Camino Correcto</h3>
+                    <div id="correct-way-text" class="text-lg text-stone-700 p-4 bg-teal-50 rounded-lg min-h-[150px]">
+                        <p class="font-bold">Nuestra escuela tiene todo lo necesario.</p>
+                        <p>Los salones están bien pintados, tenemos computadoras que funcionan y libros nuevos para todos. El dinero se usó correctamente.</p>
+                    </div>
+                </div>
+                <div>
+                    <h3 class="text-2xl font-semibold text-red-600 mb-3">El Camino con Corrupción</h3>
+                    <div id="corrupt-way-text" class="text-lg text-stone-700 p-4 bg-red-50 rounded-lg min-h-[150px]">
+                        <p class="font-bold">Nuestra escuela tiene muchas fallas.</p>
+                        <p>Faltan bancas, las computadoras no sirven y no hay suficientes libros. Alguien se quedó con el dinero que era para todo esto.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- New Gemini Feature: Generate Example -->
+            <div class="mt-12 pt-8 border-t border-orange-200">
+                <h3 class="text-2xl md:text-3xl font-bold text-center text-stone-900 mb-4">Genera tu Propio Ejemplo </h3>
+                <p class="text-lg text-stone-700 text-center max-w-2xl mx-auto mb-6">
+                    Escribe otro servicio público (como "la policía" o "arreglar mi calle") para ver cómo le afectaría la corrupción.
+                </p>
+                <div class="flex flex-col sm:flex-row gap-4 max-w-lg mx-auto">
+                    <input type="text" id="gemini-example-input" placeholder="Ej: 'la policía'" class="w-full flex-grow px-4 py-3 rounded-lg border-2 border-orange-200 focus:outline-none focus:border-orange-500 text-lg">
+                    <button id="gemini-example-button" class="bg-teal-600 text-white font-bold py-3 px-6 rounded-lg text-lg hover:bg-teal-700 transition-all duration-300 shadow-md flex-shrink-0">
+                        Ver el Impacto
+                    </button>
+                </div>
+                <div id="gemini-example-loading" class="hidden text-center text-stone-600 mt-6">
+                    <div class="loader mx-auto mb-3"></div>
+                    Generando el ejemplo...
+                </div>
+                <div id="gemini-example-result" class="hidden grid md:grid-cols-2 gap-6 bg-white p-6 rounded-2xl shadow-lg mt-6">
+                    <div>
+                        <h3 class="text-2xl font-semibold text-teal-600 mb-3">✅ El Camino Correcto</h3>
+                        <div id="gemini-correct-text" class="text-lg text-stone-700 p-4 bg-teal-50 rounded-lg min-h-[100px]">
+                            <!-- Gemini "correct" response -->
+                        </div>
+                    </div>
+                    <div>
+                        <h3 class="text-2xl font-semibold text-red-600 mb-3">El Camino con Corrupción</h3>
+                        <div id="gemini-corrupt-text" class="text-lg text-stone-700 p-4 bg-red-50 rounded-lg min-h-[100px]">
+                            <!-- Gemini "corrupt" response -->
+                        </div>
+                    </div>
+                </div>
+                <div id="gemini-example-error" class="hidden text-center text-red-600 mt-4 p-4 bg-red-100 rounded-lg"></div>
+            </div>
+
+        </section>
+
+        <section id="sentimientos" class="content-section hidden">
+            <h2 class="text-3xl md:text-4xl font-bold text-center text-stone-900 mb-4">¿Qué sentimos al ver esto?</h2>
+            <p class="text-lg text-stone-700 text-center max-w-3xl mx-auto mb-10">
+                Es normal sentir muchas cosas cuando vemos o escuchamos sobre corrupción. Hicimos una pequeña encuesta (imaginaria) para ver qué sienten otros jóvenes. ¿Tú cómo te sientes?
+            </p>
+            <div class="chart-container">
+                <canvas id="feelingsChart"></canvas>
+            </div>
+        </section>
+
+        <section id="acciones" class="content-section hidden">
+            <h2 class="text-3xl md:text-4xl font-bold text-center text-stone-900 mb-4">¡Tú eres parte del cambio!</h2>
+            <p class="text-lg text-stone-700 text-center max-w-3xl mx-auto mb-10">
+                Combatir la corrupción parece cosa de adultos, pero empieza con las pequeñas acciones que hacemos todos los días. ¡Tú puedes hacer la diferencia!
+            </p>
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="bg-white p-6 rounded-2xl shadow-md border border-orange-100 hover:shadow-lg transition-shadow">
+                    <span class="text-4xl"></span>
+                    <h3 class="text-2xl font-semibold mt-3 mb-2">Sé honesto</h3>
+                    <p class="text-stone-600">No hagas trampa en tus exámenes o en los juegos. La honestidad es el primer paso.</p>
+                </div>
+                <div class="bg-white p-6 rounded-2xl shadow-md border border-orange-100 hover:shadow-lg transition-shadow">
+                    <span class="text-4xl"></span>
+                    <h3 class="text-2xl font-semibold mt-3 mb-2">Habla y pregunta</h3>
+                    <p class="text-stone-600">Si ves algo que no te parece justo, díselo a un adulto de confianza (tus papás o maestros).</p>
+                </div>
+                <div class="bg-white p-6 rounded-2xl shadow-md border border-orange-100 hover:shadow-lg transition-shadow">
+                    <span class="text-4xl"></span>
+                    <h3 class="text-2xl font-semibold mt-3 mb-2">Respeta las reglas</h3>
+                    <p class="text-stone-600">Las reglas están para cuidarnos a todos. Respetar un semáforo o formarte en la fila es parte de jugar limpio.</p>
+                </div>
+                <div class="bg-white p-6 rounded-2xl shadow-md border border-orange-100 hover:shadow-lg transition-shadow">
+                    <span class="text-4xl"></span>
+                    <h3 class="text-2xl font-semibold mt-3 mb-2">Infórmate</h3>
+                    <p class="text-stone-600">Sigue aprendiendo sobre qué es la corrupción y por qué está mal. El conocimiento es poder.</p>
+                </div>
+                <div class="bg-white p-6 rounded-2xl shadow-md border border-orange-100 hover:shadow-lg transition-shadow">
+                    <span class="text-4xl"></span>
+                    <h3 class="text-2xl font-semibold mt-3 mb-2">No pidas "palancas"</h3>
+                    <p class="text-stone-600">Logra las cosas por tu propio esfuerzo. ¡Se siente mucho mejor!</p>
+                </div>
+                <div class="bg-white p-6 rounded-2xl shadow-md border border-orange-100 hover:shadow-lg transition-shadow">
+                    <span class="text-4xl"></span>
+                    <h3 class="text-2xl font-semibold mt-3 mb-2">Sueña en grande</h3>
+                    <p class="text-stone-600">Imagina un México sin corrupción y piensa en cómo ayudarás a construirlo cuando seas grande.</p>
+                </div>
+            </div>
+
+            <!-- Gemini Feature Section 1: Action Generator -->
+            <div class="mt-16 pt-10 border-t border-orange-200">
+                <h3 class="text-2xl md:text-3xl font-bold text-center text-stone-900 mb-4">¡Pide más ideas al Creador de Acciones! </h3>
+                <p class="text-lg text-stone-700 text-center max-w-2xl mx-auto mb-6">
+                    Escribe una situación (como "en mi familia" o "con mis amigos") y la IA te dará una nueva idea para ser honesto y justo.
+                </p>
+
+                <div class="flex flex-col sm:flex-row gap-4 max-w-lg mx-auto">
+                    <input type="text" id="gemini-action-input" placeholder="Ej: 'en mi escuela'" class="w-full flex-grow px-4 py-3 rounded-lg border-2 border-orange-200 focus:outline-none focus:border-orange-500 text-lg">
+                    <button id="gemini-action-button" class="bg-orange-500 text-white font-bold py-3 px-6 rounded-lg text-lg hover:bg-orange-600 transition-all duration-300 shadow-md flex-shrink-0">
+                        ✨ Generar Idea
+                    </button>
+                </div>
+
+                <div id="gemini-result-container" class="max-w-lg mx-auto">
+                    <div id="gemini-default-text" class="text-center text-stone-500">
+                        Aquí aparecerá tu nueva idea...
+                    </div>
+                    <div id="gemini-loading" class="hidden text-center text-stone-600">
+                        <div class="loader mx-auto mb-3"></div>
+                        Pensando en una gran idea...
+                    </div>
+                    <div id="gemini-result-text" class="hidden text-lg text-stone-800">
+                        <!-- Gemini response will appear here -->
+                    </div>
+                </div>
+            </div>
+            
+        </section>
+
+    </main>
+
+    <!-- Modal para Explicaciones Simples -->
+    <div id="simple-explainer-modal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-40 flex items-center justify-center p-4">
+        <div class="bg-white p-6 rounded-2xl shadow-2xl max-w-md w-full relative animate-fadeIn">
+            <button id="close-modal-button" class="absolute top-3 right-3 text-stone-500 hover:text-stone-800 text-3xl leading-none">&times;</button>
+            <h3 class="text-2xl font-bold text-orange-600 mb-4" id="modal-title">Explicación Simple</h3>
+            <div id="modal-loading" class="text-center hidden">
+                <div class="loader mx-auto mb-3"></div>
+                Pensando...
+            </div>
+            <div id="modal-content" class="text-lg text-stone-700 min-h-[50px]">
+                <!-- Contenido de Gemini aquí -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            
+            // --- Lógica de Navegación y Menú ---
+            const navLinks = document.querySelectorAll('.nav-link');
+            const contentSections = document.querySelectorAll('.content-section');
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+
+            function showSection(targetId) {
+                contentSections.forEach(section => {
+                    section.classList.add('hidden');
+                });
+                const targetSection = document.getElementById(targetId);
+                if (targetSection) {
+                    targetSection.classList.remove('hidden');
+                }
+            }
+
+            function updateActiveLink(targetId) {
+                navLinks.forEach(link => {
+                    link.classList.remove('active-link');
+                    if (link.getAttribute('data-target') === targetId) {
+                        link.classList.add('active-link');
+                    }
+                });
+            }
+
+            navLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const targetId = this.getAttribute('data-target');
+                    showSection(targetId);
+                    updateActiveLink(targetId);
+                    if (mobileMenu.classList.contains('hidden') === false) {
+                        mobileMenu.classList.add('hidden');
+                    }
+                });
+            });
+
+            mobileMenuButton.addEventListener('click', function() {
+                mobileMenu.classList.toggle('hidden');
+            });
+            
+            // --- Lógica de reintento de Fetch ---
+            async function fetchWithRetry(url, options, retries = 3, delay = 1000) {
+                for (let i = 0; i < retries; i++) {
+                    try {
+                        const response = await fetch(url, options);
+                        if (response.ok) {
+                            return response;
+                        }
+                        if (response.status >= 400 && response.status < 500) {
+                            throw new Error(`Error del cliente: ${response.status}`);
+                        }
+                    } catch (error) {
+                        // No registrar reintentos en la consola
+                    }
+                    await new Promise(res => setTimeout(res, delay * Math.pow(2, i)));
+                }
+                throw new Error('No se pudo conectar con el servicio después de varios intentos.');
+            }
+
+            // --- Lógica del Modal Explicador (Gemini Feature) ---
+            const modal = document.getElementById('simple-explainer-modal');
+            const closeModalButton = document.getElementById('close-modal-button');
+            const modalTitle = document.getElementById('modal-title');
+            const modalLoading = document.getElementById('modal-loading');
+            const modalContent = document.getElementById('modal-content');
+            const explainerButtons = document.querySelectorAll('.simple-explainer-btn');
+
+            function openModal() {
+                modal.classList.remove('hidden');
+            }
+            
+            function closeModal() {
+                modal.classList.add('hidden');
+            }
+
+            closeModalButton.addEventListener('click', closeModal);
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal) {
+                    closeModal();
+                }
+            });
+
+            async function handleSimpleExplainer(topic) {
+                openModal();
+                modalContent.classList.add('hidden');
+                modalLoading.classList.remove('hidden');
+                
+                let simpleTopic = "";
+                if (topic === "mordida") {
+                    simpleTopic = "pedir mordida";
+                    modalTitle.textContent = "Explicación: Mordida";
+                } else if (topic === "palancas") {
+                    simpleTopic = "tener palancas";
+                    modalTitle.textContent = "Explicación: Palancas";
+                } else {
+                    simpleTopic = "desviar dinero";
+                    modalTitle.textContent = "Explicación: Desviar Dinero";
+                }
+
+                const apiKey = ""; // Dejar vacío
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+                
+                const systemPrompt = "Eres un maestro muy amigable que le explica temas difíciles a niños de 8 años. Usas analogías simples y lenguaje muy fácil de entender. Responde en español en un párrafo corto (2-3 frases).";
+                const userQuery = `Explícame qué significa "${simpleTopic}" como si tuviera 8 años, usando una analogía simple.`;
+
+                const payload = {
+                    contents: [{ parts: [{ text: userQuery }] }],
+                    systemInstruction: { parts: [{ text: systemPrompt }] },
+                };
+
+                try {
+                    const response = await fetchWithRetry(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    const result = await response.json();
+                    const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
+                    
+                    if (text) {
+                        modalContent.textContent = text;
+                    } else {
+                        throw new Error('No text returned');
+                    }
+                } catch (error) {
+                    modalContent.textContent = '¡Uy! No pude pensar en una explicación. Intenta de nuevo.';
+                } finally {
+                    modalLoading.classList.add('hidden');
+                    modalContent.classList.remove('hidden');
+                }
+            }
+
+            explainerButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const topic = this.getAttribute('data-topic');
+                    handleSimpleExplainer(topic);
+                });
+            });
+            
+            // --- Lógica de Botones de Impacto ---
+            const impactData = {
+                'escuela': {
+                    correct: "<p class='font-bold'>Nuestra escuela tiene todo lo necesario.</p><p>Los salones están bien pintados, tenemos computadoras que funcionan y libros nuevos para todos. El dinero se usó correctamente.</p>",
+                    corrupt: "<p class='font-bold'>Nuestra escuela tiene muchas fallas.</p><p>Faltan bancas, las computadoras no sirven y no hay suficientes libros. Alguien se quedó con el dinero que era para todo esto.</p>"
+                },
+                'hospital': {
+                    correct: "<p class='font-bold'>El hospital tiene medicinas.</p><p>Si te enfermas, el hospital tiene doctores y las medicinas que necesitas para curarte rápido.</p>",
+                    corrupt: "<p class='font-bold'>¡No hay medicinas!</p><p>Vas al hospital y te dicen que no tienen las medicinas que necesitas. El dinero para comprarlas... desapareció.</p>"
+                },
+                'parque': {
+                    correct: "<p class='font-bold'>El parque está limpio y seguro.</p><p>Los juegos están en buen estado, hay botes de basura y luz en la noche para que todos podamos jugar seguros.</p>",
+                    corrupt: "<p class='font-bold'>El parque está abandonado.</p><p>Los juegos están rotos y es peligroso. El dinero que era para arreglarlo se usó en otra cosa que no era para el parque.</p>"
+                }
+            };
+
+            const impactButtons = document.querySelectorAll('.impact-btn');
+            const correctText = document.getElementById('correct-way-text');
+            const corruptText = document.getElementById('corrupt-way-text');
+
+            impactButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const type = this.getAttribute('data-type');
+                    
+                    correctText.innerHTML = impactData[type].correct;
+                    corruptText.innerHTML = impactData[type].corrupt;
+
+                    impactButtons.forEach(btn => btn.classList.remove('active-impact-btn'));
+                    this.classList.add('active-impact-btn');
+                });
+            });
+
+            // --- Lógica del Gráfico ---
+            function createChart() {
+                const ctx = document.getElementById('feelingsChart');
+                if (!ctx) return;
+                
+                const feelingsChart = new Chart(ctx.getContext('2d'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Enojo', 'Tristeza', 'Ganas de cambiar', 'No me importa'],
+                        datasets: [{
+                            label: '¿Qué sentimos?',
+                            data: [40, 25, 30, 5],
+                            backgroundColor: [
+                                'rgba(239, 68, 68, 0.7)',  // Enojo (Rojo)
+                                'rgba(59, 130, 246, 0.7)', // Tristeza (Azul)
+                                'rgba(22, 163, 74, 0.7)', // Ganas de cambiar (Verde)
+                                'rgba(156, 163, 175, 0.7)' // No me importa (Gris)
+                            ],
+                            borderColor: [
+                                'rgba(239, 68, 68, 1)',
+                                'rgba(59, 130, 246, 1)',
+                                'rgba(22, 163, 74, 1)',
+                                'rgba(156, 163, 175, 1)'
+                            ],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        let label = context.label || '';
+                                        if (label) {
+                                            label += ': ';
+                                        }
+                                        if (context.parsed !== null) {
+                                            label += context.parsed + '%';
+                                        }
+                                        return label;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+            
+            createChart();
+
+            // --- Gemini API Feature: Action Generator ---
+            const geminiButton = document.getElementById('gemini-action-button');
+            const geminiInput = document.getElementById('gemini-action-input');
+            const geminiResultText = document.getElementById('gemini-result-text');
+            const geminiLoading = document.getElementById('gemini-loading');
+            const geminiDefaultText = document.getElementById('gemini-default-text');
+            const geminiButtonDefaultText = 'Generar Idea';
+
+            async function handleGeminiAction() {
+                const userInput = geminiInput.value.trim();
+                if (!userInput) {
+                    geminiResultText.textContent = "Por favor, escribe una situación primero.";
+                    geminiResultText.classList.remove('hidden');
+                    geminiDefaultText.classList.add('hidden');
+                    geminiLoading.classList.add('hidden');
+                    return;
+                }
+
+                geminiButton.disabled = true;
+                geminiButton.innerHTML = 'Generando...';
+                geminiLoading.classList.remove('hidden');
+                geminiDefaultText.classList.add('hidden');
+                geminiResultText.classList.add('hidden');
+
+                const apiKey = ""; // Dejar vacío según las instrucciones
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+                
+                const systemPrompt = "Eres un asistente amigable y positivo. Tu trabajo es generar ideas simples, seguras y constructivas para que niños y jóvenes (de primaria y secundaria) puedan promover la honestidad y combatir la corrupción en su vida diaria. Las ideas deben ser acciones concretas, fáciles de entender y apropiadas para su edad. Responde en español, en un párrafo corto (máximo 2-3 oraciones).";
+                const userQuery = `Dame una idea de una acción positiva sobre la honestidad o contra la corrupción relacionada con: ${userInput}.`;
+
+                const payload = {
+                    contents: [{ parts: [{ text: userQuery }] }],
+                    systemInstruction: {
+                        parts: [{ text: systemPrompt }]
+                    },
+                };
+
+                try {
+                    const response = await fetchWithRetry(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    const result = await response.json();
+                    const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
+
+                    if (text) {
+                        geminiResultText.textContent = text;
+                    } else {
+                        geminiResultText.textContent = 'No se pudo generar una idea. ¡Intenta de nuevo!';
+                    }
+                } catch (error) {
+                    geminiResultText.textContent = 'Ocurrió un error al conectar. Por favor, intenta más tarde.';
+                } finally {
+                    geminiButton.disabled = false;
+                    geminiButton.innerHTML = geminiButtonDefaultText;
+                    geminiLoading.classList.add('hidden');
+                    geminiResultText.classList.remove('hidden');
+                }
+            }
+
+            geminiButton.addEventListener('click', handleGeminiAction);
+
+            // --- Gemini API Feature: Example Generator ---
+            const exampleButton = document.getElementById('gemini-example-button');
+            const exampleInput = document.getElementById('gemini-example-input');
+            const exampleLoading = document.getElementById('gemini-example-loading');
+            const exampleResult = document.getElementById('gemini-example-result');
+            const exampleError = document.getElementById('gemini-example-error');
+            const geminiCorrectText = document.getElementById('gemini-correct-text');
+            const geminiCorruptText = document.getElementById('gemini-corrupt-text');
+            const exampleButtonDefaultText = '✨ Ver el Impacto';
+
+            async function handleGeminiExample() {
+                const userInput = exampleInput.value.trim();
+                if (!userInput) {
+                    exampleError.textContent = "Por favor, escribe un servicio (ej: 'la policía').";
+                    exampleError.classList.remove('hidden');
+                    exampleResult.classList.add('hidden');
+                    return;
+                }
+
+                exampleButton.disabled = true;
+                exampleButton.innerHTML = 'Generando...';
+                exampleLoading.classList.remove('hidden');
+                exampleResult.classList.add('hidden');
+                exampleError.classList.add('hidden');
+
+                const apiKey = ""; // Dejar vacío
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+
+                const systemPrompt = "Eres un asistente que explica la corrupción a niños y jóvenes (10-14 años). Tu tarea es generar dos escenarios para un tema dado: uno 'correcto' (sin corrupción) y uno 'corrupto' (con corrupción). Debes responder en JSON. Los escenarios deben ser cortos (1-2 frases), claros y usar lenguaje simple y directo, como en los ejemplos estáticos de la app. Responde en español.";
+                const userQuery = `Genera los escenarios 'correcto' y 'corrupto' para el tema: "${userInput}"`;
+
+                const payload = {
+                    contents: [{ parts: [{ text: userQuery }] }],
+                    systemInstruction: { parts: [{ text: systemPrompt }] },
+                    generationConfig: {
+                        responseMimeType: "application/json",
+                        responseSchema: {
+                            type: "OBJECT",
+                            properties: {
+                                "correcto": { "type": "STRING" },
+                                "corrupto": { "type": "STRING" }
+                            },
+                            required: ["correcto", "corrupto"]
+                        }
+                    }
+                };
+
+                try {
+                    const response = await fetchWithRetry(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    const result = await response.json();
+                    const part = result.candidates?.[0]?.content?.parts?.[0];
+
+                    if (part && part.text) {
+                        const data = JSON.parse(part.text);
+                        geminiCorrectText.innerHTML = `<p>${data.correcto}</p>`;
+                        geminiCorruptText.innerHTML = `<p>${data.corrupto}</p>`;
+                        exampleResult.classList.remove('hidden');
+                    } else {
+                        throw new Error('Respuesta inválida de la API.');
+                    }
+                } catch (error) {
+                    exampleError.textContent = 'No se pudo generar el ejemplo. ¡Intenta de nuevo!';
+                    exampleError.classList.remove('hidden');
+                } finally {
+                    exampleButton.disabled = false;
+                    exampleButton.innerHTML = exampleButtonDefaultText;
+                    exampleLoading.classList.add('hidden');
+                }
+            }
+            
+            exampleButton.addEventListener('click', handleGeminiExample);
+
+        });
+    </script>
+</body>
+</html>
